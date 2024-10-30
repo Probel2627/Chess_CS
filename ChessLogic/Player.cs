@@ -1,4 +1,7 @@
 ﻿namespace ChessLogic
+
+//Represent color + which player turn right now + who won
+
 {
     public enum Player
     {
@@ -9,7 +12,7 @@
 
     public static class PlayerExtensions
     {
-        public static Player Opponent(this Player player)
+        public static Player Opponent(this Player player) //Method Opponent to find opponent
         {
             return player switch
             {
