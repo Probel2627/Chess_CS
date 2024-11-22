@@ -29,13 +29,13 @@
             }
         }
 
-        private IEnumerable<Position> MovePositions(Position from, Board board)
+        private IEnumerable<Position> MovePositions(Position from, Board board) //method to keep only legal methods for move
         {
             return PotentialToPositions(from).Where(pos => Board.IsInside(pos)
                 && (board.IsEmpty(pos) || board[pos].Color != Color));
         }
 
-        public override IEnumerable<Move> GetMoves(Position from, Board board)
+        public override IEnumerable<Move> GetMoves(Position from, Board board) //just call move positions and then use select to create a moves
         {
             return MovePositions(from, board).Select(to => new NormalMove(from, to));
         }

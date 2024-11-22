@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ChessLogic
+﻿namespace ChessLogic
 {
     public class Pawn : Piece
     {
@@ -14,7 +7,7 @@ namespace ChessLogic
 
         private readonly Direction forward;
 
-        public Pawn(Player color)
+        public Pawn(Player color)  //Check color to set the movement options
         {
             Color = color;
 
@@ -22,7 +15,7 @@ namespace ChessLogic
             {
                 forward = Direction.North;
             }
-            else if (color == Player.Black) //Можно попробовать сокротить до просто else
+            else if (color == Player.Black)
             {
                     forward = Direction.South;
             }
@@ -35,12 +28,12 @@ namespace ChessLogic
             return copy;
         }
 
-        private static bool CanMoveTo(Position pos, Board board)
+        private static bool CanMoveTo(Position pos, Board board)  //Check if pawn can move forward into the given position
         {
             return Board.IsInside(pos) && board.IsEmpty(pos);
         }
 
-        private bool CanCaptureAt(Position pos, Board board)
+        private bool CanCaptureAt(Position pos, Board board) //return true if pawn can move diagonaly 
         {
             if (!Board.IsInside(pos) || board.IsEmpty(pos))
             {
@@ -50,19 +43,37 @@ namespace ChessLogic
             return board[pos].Color != Color;
         }
 
-        private IEnumerable<Move> ForwardMoves(Position from, Board board)
+        private static IEnumerable<Move> PromotionMoves(Position from, Position to)
+        {
+            yield return new PawnPromotion(from, to, PieceType.Knight);
+            yield return new PawnPromotion(from, to, PieceType.Bishop);
+            yield return new PawnPromotion(from, to, PieceType.Rook);
+            yield return new PawnPromotion(from, to, PieceType.Queen);
+        }
+
+        private IEnumerable<Move> ForwardMoves(Position from, Board board) //Pawn can advance two squares for the first move
         {
             Position oneMovePos = from + forward;
 
             if (CanMoveTo(oneMovePos, board))
             {
-                yield return new NormalMove(from, oneMovePos);
+                if (oneMovePos.Row == 0 || oneMovePos.Row ==7)
+                {
+                    foreach(Move promMove in PromotionMoves(from, oneMovePos))
+                    {
+                        yield return promMove;
+                    }
+                }
+                else
+                {
+                    yield return new NormalMove(from, oneMovePos);
+                }
 
                 Position twoMovesPos = oneMovePos + forward;
 
                 if (!HasMoved && CanMoveTo(twoMovesPos, board))
                 {
-                    yield return new NormalMove(from, twoMovesPos);
+                    yield return new DoublePawn(from, twoMovesPos);
                 }
             }
         }
@@ -73,9 +84,23 @@ namespace ChessLogic
             {
                 Position to = from + forward + dir;
 
-                if (CanCaptureAt(to, board))
+                if (to == board.GetPawnSkipPosition(Color.Opponent()))
                 {
-                    yield return new NormalMove(from, to);
+                    yield return new EnPassant(from, to);
+                }
+                else if (CanCaptureAt(to, board))
+                {
+                    if (to.Row == 0 || to.Row == 7)
+                    {
+                        foreach (Move promMove in PromotionMoves(from, to))
+                        {
+                            yield return promMove;
+                        }
+                    }
+                    else
+                    {
+                        yield return new NormalMove(from, to);
+                    }
                 }
             }
         }
@@ -83,6 +108,15 @@ namespace ChessLogic
         public override IEnumerable<Move> GetMoves(Position from, Board board)
         {
             return ForwardMoves(from, board).Concat(DiagonalMoves(from, board));
+        }
+
+        public override bool CanCaptureOpponentKing(Position from, Board board)
+        {
+            return DiagonalMoves(from, board).Any(move =>
+            {
+                Piece piece = board[move.ToPos];
+                return piece != null && piece.Type == PieceType.King;
+            });
         }
     }
 }
